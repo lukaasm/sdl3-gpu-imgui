@@ -1,0 +1,18 @@
+{
+    "default-registry": {
+        "kind": "git",
+        "repository": "https://github.com/microsoft/vcpkg",
+        "baseline": "fe1cde61e971d53c9687cf9a46308f8f55da19fa"
+    },
+    "registries": [
+        {
+            "kind": "git",
+            "repository": "https://github.com/lukaasm/vcpkg-registry",
+            "baseline": "835aa9cfac92adf8d82380212b0c17666428d414",
+            "packages": [
+                "luau",
+                "sdl3"
+            ]
+        }
+    ]
+}

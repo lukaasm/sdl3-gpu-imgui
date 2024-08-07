@@ -1,0 +1,54 @@
+{
+    "version": 7,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "ninja-win64",
+            "displayName": "Windows x64",
+            "binaryDir": "${sourceDir}/.build/${presetName}",
+            "installDir": "${sourceDir}/bin/",
+            "generator": "Ninja Multi-Config",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_INSTALLED_DIR": "${sourceDir}/.build/vcpkg_installed",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "VCPKG_HOST_TRIPLET": "x64-windows",
+                "CMAKE_TOOLCHAIN_FILE": {
+                    "type": "FILEPATH",
+                    "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+                },
+                "CMAKE_CONFIGURATION_TYPES": "Debug;RelWithDebInfo",
+                "CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/bin/Debug"
+                },
+                "CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE": {
+                    "type": "FILEPATH",
+                    "value": "${sourceDir}/bin"
+                },
+                "CMAKE_CXX_STANDARD": "20"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "vs-win64-debug",
+            "displayName": "Debug",
+            "configurePreset": "ninja-win64",
+            "configuration": "Debug"
+        },
+        {
+            "name": "vs-win64-release",
+            "displayName": "Release",
+            "configurePreset": "ninja-win64",
+            "configuration": "Release"
+        }
+    ]
+}

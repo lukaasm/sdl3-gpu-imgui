@@ -351,6 +351,8 @@ public:
             .offset = 0
         };
 
+        ::SDL_GpuBindIndexBuffer(renderPass, &indexBufferBinding, sizeof(ImDrawIdx) == sizeof(uint16_t) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
+
         uint32_t global_idx_offset = 0;
         uint32_t global_vtx_offset = 0;
 
@@ -390,8 +392,6 @@ public:
                         .texture = (::SDL_GpuTexture*)pcmd->GetTexID(),
                         .sampler = m_textureSampler
                     };
-
-                    ::SDL_GpuBindIndexBuffer(renderPass, &indexBufferBinding, sizeof(ImDrawIdx) == sizeof(uint16_t) ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
 
                     ::SDL_GpuBindFragmentSamplers(renderPass, 0, &samplerBinding, 1);
                     ::SDL_GpuDrawIndexedPrimitives(renderPass, global_vtx_offset + pcmd->VtxOffset, global_idx_offset + pcmd->IdxOffset, pcmd->ElemCount / 3, 1);

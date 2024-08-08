@@ -59,7 +59,7 @@ float4 main(PS_INPUT input) : SV_Target
 struct ImGuiRenderPass
 {
 public:
-    void Initialize(::SDL_GpuDevice* device)
+    void Initialize(::SDL_GpuDevice* device, ::SDL_Window* window)
     {
         auto vertexShaderDesc = SDL_GpuShaderCreateInfo{};
         vertexShaderDesc.code = (const uint8_t*)s_imguiVertexShader.data();
@@ -88,7 +88,7 @@ public:
         auto fragmentShader = ::SDL_GpuCreateShader(device, &fragmentShaderDesc);
 
         auto attachmentDesc = SDL_GpuColorAttachmentDescription{};
-        attachmentDesc.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8;
+        attachmentDesc.format = ::SDL_GpuGetSwapchainTextureFormat(device, window);
         attachmentDesc.blendState = {
             .blendEnable = SDL_TRUE,
             .srcColorBlendFactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
@@ -194,7 +194,6 @@ public:
         unsigned char* pixels;
         int width, height;
         ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        ImGui::GetIO().DisplaySize = { 1600.f, 900.f };
 
         auto textureDesc = ::SDL_GpuTextureCreateInfo{
             .width = (uint32_t)width,
@@ -242,8 +241,9 @@ public:
 
         ::SDL_GpuReleaseTransferBuffer(device, transferBuffer);
 
-        ImGui::GetIO().BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
-        ImGui::GetIO().Fonts->SetTexID(m_fontTexture);
+        auto& io = ImGui::GetIO();
+        io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+        io.Fonts->SetTexID(m_fontTexture);
     }
 
     void UpdateBuffers(::SDL_GpuDevice* device, ::SDL_GpuCommandBuffer* commandBuffer, const ::ImDrawData* drawData)
@@ -251,11 +251,14 @@ public:
         if (drawData->TotalVtxCount == 0)
             return;
 
+        //! #TODO: verify if we have enough space in transfer buffer for new payload!
+        //! #TODO: support for resizing buffers when we are out of space!
+
         uint8_t* vertices = nullptr;
-        ::SDL_GpuMapTransferBuffer(device, m_vertexTransferBuffer, SDL_FALSE, (void**)&vertices);
+        ::SDL_GpuMapTransferBuffer(device, m_vertexTransferBuffer, SDL_TRUE, (void**)&vertices);
 
         uint8_t* indices = nullptr;
-        ::SDL_GpuMapTransferBuffer(device, m_indexTransferBuffer, SDL_FALSE, (void**)&indices);
+        ::SDL_GpuMapTransferBuffer(device, m_indexTransferBuffer, SDL_TRUE, (void**)&indices);
 
         for (int n = 0; n < drawData->CmdListsCount; n++)
         {
@@ -287,7 +290,7 @@ public:
                 .size = (uint32_t)(drawData->TotalVtxCount * sizeof(ImDrawVert))
             };
 
-            ::SDL_GpuUploadToBuffer(pass, &transferSourceDesc, &transferDestDesc, SDL_FALSE);
+            ::SDL_GpuUploadToBuffer(pass, &transferSourceDesc, &transferDestDesc, SDL_TRUE);
         }
         {
             auto transferSourceDesc = ::SDL_GpuTransferBufferLocation{
@@ -417,15 +420,15 @@ int main()
 
     auto device = ::SDL_GpuCreateDevice(SDL_GPU_BACKEND_D3D11, SDL_TRUE, SDL_FALSE);
 
-    auto window = ::SDL_CreateWindow("", 1600, 900, SDL_WINDOW_HIGH_PIXEL_DENSITY);
+    int windowWidth = 1600;
+    int windowHeight = 900;
+
+    auto window = ::SDL_CreateWindow("", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
     ::SDL_GpuClaimWindow(device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR, SDL_GPU_PRESENTMODE_VSYNC);
 
-    int w, h;
-    SDL_GetWindowSizeInPixels(window, &w, &h);
-
     auto depthBufferDesc = ::SDL_GpuTextureCreateInfo{
-        .width = (uint32_t)w,
-        .height = (uint32_t)h,
+        .width = (uint32_t)windowWidth,
+        .height = (uint32_t)windowHeight,
         .depth = 1,
         .layerCount = 1,
         .levelCount = 1,
@@ -434,12 +437,13 @@ int main()
         .usageFlags = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET_BIT
     };
 
+    //! #TODO: support for resizing depth buffers!
     auto depthBuffer = ::SDL_GpuCreateTexture(device, &depthBufferDesc);
 
     ImGui::CreateContext();
 
     ImGuiRenderPass pass;
-    pass.Initialize(device);
+    pass.Initialize(device, window);
 
     bool running = true;
     while (running)
@@ -451,6 +455,11 @@ int main()
                 return 0;
 
             ImGui_ImplSDL3_ProcessEvent(&evt);
+        }
+
+        if (::SDL_GetWindowSizeInPixels(window, &windowWidth, &windowHeight) == 0)
+        {
+            ImGui::GetIO().DisplaySize = { (float)windowWidth, (float)windowHeight };
         }
 
         ImGui::NewFrame();

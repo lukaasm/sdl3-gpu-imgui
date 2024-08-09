@@ -10,6 +10,8 @@
 #include <variant>
 #include <vector>
 
+#include <d3dcompiler.h>
+
 static const std::string s_imguiVertexShader = R"(
 cbuffer vertexBuffer : register(b0)
 {
@@ -56,16 +58,33 @@ float4 main(PS_INPUT input) : SV_Target
 	return out_col;
 } )";
 
+std::vector<uint8_t> CompileD3DShader(::SDL_GpuShaderStage stage, const std::string& shader)
+{
+    ::ID3DBlob* shaderBlob = nullptr;
+    D3DCompile(shader.c_str(), shader.size(), nullptr, nullptr, nullptr, "main", stage == SDL_GPU_SHADERSTAGE_VERTEX ? "vs_5_0" : "ps_5_0", 0, 0, &shaderBlob, nullptr);
+
+    std::vector<uint8_t> result;
+    result.resize(shaderBlob->GetBufferSize());
+
+    std::memcpy(result.data(), shaderBlob->GetBufferPointer(), shaderBlob->GetBufferSize());
+
+    shaderBlob->Release();
+
+    return result;
+}
+
 struct ImGuiRenderPass
 {
 public:
     void Initialize(::SDL_GpuDevice* device, ::SDL_Window* window)
     {
+        auto vertexShaderBlob = CompileD3DShader(SDL_GPU_SHADERSTAGE_VERTEX, s_imguiVertexShader);
+
         auto vertexShaderDesc = SDL_GpuShaderCreateInfo{};
-        vertexShaderDesc.code = (const uint8_t*)s_imguiVertexShader.data();
-        vertexShaderDesc.codeSize = s_imguiVertexShader.size();
+        vertexShaderDesc.code = (const uint8_t*)vertexShaderBlob.data();
+        vertexShaderDesc.codeSize = vertexShaderBlob.size();
         vertexShaderDesc.entryPointName = "main";
-        vertexShaderDesc.format = SDL_GPU_SHADERFORMAT_HLSL;
+        vertexShaderDesc.format = SDL_GPU_SHADERFORMAT_DXBC;
         vertexShaderDesc.stage = SDL_GPU_SHADERSTAGE_VERTEX;
         vertexShaderDesc.samplerCount = 0;
         vertexShaderDesc.uniformBufferCount = 1;
@@ -74,11 +93,13 @@ public:
 
         auto vertexShader = ::SDL_GpuCreateShader(device, &vertexShaderDesc);
 
+        auto fragmentShaderBlob = CompileD3DShader(SDL_GPU_SHADERSTAGE_FRAGMENT, s_imguiFragmentShader);
+
         auto fragmentShaderDesc = SDL_GpuShaderCreateInfo{};
-        fragmentShaderDesc.code = (const uint8_t*)s_imguiFragmentShader.data();
-        fragmentShaderDesc.codeSize = s_imguiFragmentShader.size();
+        fragmentShaderDesc.code = (const uint8_t*)fragmentShaderBlob.data();
+        fragmentShaderDesc.codeSize = fragmentShaderBlob.size();
         fragmentShaderDesc.entryPointName = "main";
-        fragmentShaderDesc.format = SDL_GPU_SHADERFORMAT_HLSL;
+        fragmentShaderDesc.format = SDL_GPU_SHADERFORMAT_DXBC;
         fragmentShaderDesc.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
         fragmentShaderDesc.samplerCount = 1;
         fragmentShaderDesc.uniformBufferCount = 0;
@@ -195,6 +216,8 @@ public:
         int width, height;
         ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
+        auto pixelDataSizeInBytes = (uint32_t)(width * height * sizeof(uint8_t) * 4);
+
         auto textureDesc = ::SDL_GpuTextureCreateInfo{
             .width = (uint32_t)width,
             .height = (uint32_t)height,
@@ -218,13 +241,11 @@ public:
 
         auto* transferBuffer = ::SDL_GpuCreateTransferBuffer(device, SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, width * height * sizeof(uint8_t) * 4);
 
-        auto transferdDestDesc = ::SDL_GpuTransferBufferRegion{
-            .transferBuffer = transferBuffer,
-            .offset = 0,
-            .size = (uint32_t)(width * height * sizeof(uint8_t) * 4)
-        };
+        void* memory = nullptr;
+        ::SDL_GpuMapTransferBuffer(device, transferBuffer, SDL_FALSE, &memory);
+        std::memcpy(memory, pixels, pixelDataSizeInBytes);
 
-        ::SDL_GpuSetTransferData(device, pixels, &transferdDestDesc, SDL_FALSE);
+        ::SDL_GpuUnmapTransferBuffer(device, transferBuffer);
 
         // Upload the transfer data to the vertex buffer
         auto uploadBuffer = ::SDL_GpuAcquireCommandBuffer(device);
@@ -379,7 +400,7 @@ public:
                     if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
                         continue;
 
-                    auto scissorDesc = ::SDL_GpuRect{
+                    auto scissorDesc = ::SDL_Rect{
                         .x = (Sint32)clip_min.x,
                         .y = (Sint32)clip_min.y,
                         .w = (Sint32)(clip_max.x - clip_min.x),
@@ -394,7 +415,7 @@ public:
                     };
 
                     ::SDL_GpuBindFragmentSamplers(renderPass, 0, &samplerBinding, 1);
-                    ::SDL_GpuDrawIndexedPrimitives(renderPass, global_vtx_offset + pcmd->VtxOffset, global_idx_offset + pcmd->IdxOffset, pcmd->ElemCount / 3, 1);
+                    ::SDL_GpuDrawIndexedPrimitives(renderPass, global_vtx_offset + pcmd->VtxOffset, global_idx_offset + pcmd->IdxOffset, pcmd->ElemCount, 1);
                 }
             }
 
@@ -418,7 +439,12 @@ int main()
 {
     ::SDL_InitSubSystem(SDL_INIT_VIDEO);
 
-    auto device = ::SDL_GpuCreateDevice(SDL_GPU_BACKEND_D3D11, SDL_TRUE, SDL_FALSE);
+    auto properties = ::SDL_CreateProperties();
+    ::SDL_SetStringProperty(properties, SDL_PROP_GPU_CREATEDEVICE_NAME_STRING, "D3D11");
+
+    auto device = ::SDL_GpuCreateDevice(SDL_TRUE, SDL_FALSE, properties);
+
+    ::SDL_DestroyProperties(properties);
 
     int windowWidth = 1600;
     int windowHeight = 900;
@@ -476,7 +502,7 @@ int main()
         {
             auto renderTargetDesc = SDL_GpuColorAttachmentInfo{};
             renderTargetDesc.textureSlice.texture = windowTexture;
-            renderTargetDesc.clearColor = SDL_GpuColor{ 0.3f, 0.4f, 0.5f, 1.0f };
+            renderTargetDesc.clearColor = SDL_FColor{ 0.3f, 0.4f, 0.5f, 1.0f };
             renderTargetDesc.loadOp = SDL_GPU_LOADOP_CLEAR;
             renderTargetDesc.storeOp = SDL_GPU_STOREOP_STORE;
 

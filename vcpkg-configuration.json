@@ -8,9 +8,8 @@
         {
             "kind": "git",
             "repository": "https://github.com/lukaasm/vcpkg-registry",
-            "baseline": "835aa9cfac92adf8d82380212b0c17666428d414",
+            "baseline": "078c608d417c583a3a8a5a5a875772a900a2be74",
             "packages": [
-                "luau",
                 "sdl3"
             ]
         }

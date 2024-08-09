@@ -9,4 +9,5 @@ add_executable(sdl3-gpu-imgui main.cpp)
 target_link_libraries( sdl3-gpu-imgui PUBLIC
     imgui::imgui
     SDL3::SDL3
+    d3dcompiler
 )

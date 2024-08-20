@@ -191,15 +191,35 @@ public:
         ::SDL_GpuReleaseShader(device, vertexShader);
         ::SDL_GpuReleaseShader(device, fragmentShader);
 
-        m_vertexBuffer = ::SDL_GpuCreateBuffer(device, ::SDL_GPU_BUFFERUSAGE_VERTEX_BIT, sizeof(ImDrawVert) * 1024 * 1024 * 64);
+        auto vertexBufferDesc = ::SDL_GpuBufferCreateInfo{
+            .usageFlags = ::SDL_GPU_BUFFERUSAGE_VERTEX_BIT,
+            .sizeInBytes = sizeof(ImDrawVert) * 1024 * 1024 * 64
+        };
+
+        m_vertexBuffer = ::SDL_GpuCreateBuffer(device, &vertexBufferDesc);
         ::SDL_GpuSetBufferName(device, m_vertexBuffer, "ImGui - VertexBuffer");
 
-        m_vertexTransferBuffer = ::SDL_GpuCreateTransferBuffer(device, SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, sizeof(ImDrawVert) * 1024 * 1024 * 64);
+        auto vertexTransferBufferDesc = ::SDL_GpuTransferBufferCreateInfo{
+            .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+            .sizeInBytes = vertexBufferDesc.sizeInBytes
+        };
 
-        m_indexBuffer = ::SDL_GpuCreateBuffer(device, ::SDL_GPU_BUFFERUSAGE_INDEX_BIT, sizeof(ImDrawIdx) * 1024 * 1024 * 64);
+        m_vertexTransferBuffer = ::SDL_GpuCreateTransferBuffer(device, &vertexTransferBufferDesc);
+
+        auto indexBufferDesc = ::SDL_GpuBufferCreateInfo{
+            .usageFlags = ::SDL_GPU_BUFFERUSAGE_INDEX_BIT,
+            .sizeInBytes = sizeof(ImDrawIdx) * 1024 * 1024 * 64
+        };
+
+        m_indexBuffer = ::SDL_GpuCreateBuffer(device, &indexBufferDesc);
         ::SDL_GpuSetBufferName(device, m_indexBuffer, "ImGui - IndexBuffer");
 
-        m_indexTransferBuffer = ::SDL_GpuCreateTransferBuffer(device, SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, sizeof(ImDrawIdx) * 1024 * 1024 * 64);
+        auto indexTransferBufferDesc = ::SDL_GpuTransferBufferCreateInfo{
+            .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+            .sizeInBytes = indexBufferDesc.sizeInBytes
+        };
+
+        m_indexTransferBuffer = ::SDL_GpuCreateTransferBuffer(device, &indexTransferBufferDesc);
 
         auto samplerDesc = ::SDL_GpuSamplerCreateInfo{
             .minFilter = SDL_GPU_FILTER_NEAREST,
@@ -222,7 +242,7 @@ public:
             .width = (uint32_t)width,
             .height = (uint32_t)height,
             .depth = 1,
-            .isCube = SDL_FALSE,
+            .type = SDL_GPU_TEXTURETYPE_2D,
             .layerCount = 1,
             .levelCount = 1,
             .sampleCount = {},
@@ -234,17 +254,21 @@ public:
         ::SDL_GpuSetTextureName(device, m_fontTexture, "ImGui - FontAtas");
 
         auto transferDestDesc = ::SDL_GpuTextureRegion{};
-        transferDestDesc.textureSlice.texture = m_fontTexture;
+        transferDestDesc.texture = m_fontTexture;
         transferDestDesc.w = (uint32_t)width;
         transferDestDesc.h = (uint32_t)height;
         transferDestDesc.d = 1;
 
-        auto* transferBuffer = ::SDL_GpuCreateTransferBuffer(device, SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, width * height * sizeof(uint8_t) * 4);
+        auto transferBufferDesc = ::SDL_GpuTransferBufferCreateInfo{
+            .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
+            .sizeInBytes = pixelDataSizeInBytes
+        };
 
-        void* memory = nullptr;
-        ::SDL_GpuMapTransferBuffer(device, transferBuffer, SDL_FALSE, &memory);
-        std::memcpy(memory, pixels, pixelDataSizeInBytes);
+        auto* transferBuffer = ::SDL_GpuCreateTransferBuffer(device, &transferBufferDesc);
 
+        void* data = nullptr;
+        ::SDL_GpuMapTransferBuffer(device, transferBuffer, SDL_FALSE, &data);
+        std::memcpy(data, pixels, pixelDataSizeInBytes);
         ::SDL_GpuUnmapTransferBuffer(device, transferBuffer);
 
         // Upload the transfer data to the vertex buffer
@@ -441,8 +465,9 @@ int main()
 
     auto properties = ::SDL_CreateProperties();
     ::SDL_SetStringProperty(properties, SDL_PROP_GPU_CREATEDEVICE_NAME_STRING, "D3D11");
+    ::SDL_SetBooleanProperty(properties, SDL_PROP_GPU_CREATEDEVICE_SHADERS_DXBC_BOOL, SDL_TRUE);
 
-    auto device = ::SDL_GpuCreateDevice(SDL_TRUE, SDL_FALSE, properties);
+    auto device = ::SDL_GpuCreateDeviceWithProperties( properties );
 
     ::SDL_DestroyProperties(properties);
 
@@ -456,6 +481,7 @@ int main()
         .width = (uint32_t)windowWidth,
         .height = (uint32_t)windowHeight,
         .depth = 1,
+        .type = SDL_GPU_TEXTURETYPE_2D,
         .layerCount = 1,
         .levelCount = 1,
         .sampleCount = SDL_GPU_SAMPLECOUNT_1,
@@ -501,13 +527,13 @@ int main()
         if (auto windowTexture = SDL_GpuAcquireSwapchainTexture(commandBuffer, window, &w, &h); windowTexture != nullptr)
         {
             auto renderTargetDesc = SDL_GpuColorAttachmentInfo{};
-            renderTargetDesc.textureSlice.texture = windowTexture;
+            renderTargetDesc.texture = windowTexture;
             renderTargetDesc.clearColor = SDL_FColor{ 0.3f, 0.4f, 0.5f, 1.0f };
             renderTargetDesc.loadOp = SDL_GPU_LOADOP_CLEAR;
             renderTargetDesc.storeOp = SDL_GPU_STOREOP_STORE;
 
             auto depthStencilDesc = SDL_GpuDepthStencilAttachmentInfo{};
-            depthStencilDesc.textureSlice.texture = depthBuffer;
+            depthStencilDesc.texture = depthBuffer;
             depthStencilDesc.cycle = SDL_TRUE;
             depthStencilDesc.depthStencilClearValue.depth = 0;
             depthStencilDesc.depthStencilClearValue.stencil = 0;

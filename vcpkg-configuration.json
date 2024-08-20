@@ -8,7 +8,7 @@
         {
             "kind": "git",
             "repository": "https://github.com/lukaasm/vcpkg-registry",
-            "baseline": "ff7e9e688d909cc1e03e02202955bf1b2f0bf547",
+            "baseline": "2e79fc23b65a00bb555007a6109a02181182754a",
             "packages": [
                 "sdl3"
             ]

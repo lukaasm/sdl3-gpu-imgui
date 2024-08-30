@@ -4,9 +4,6 @@
     "version": "0.0.1",
     "dependencies": [
         "imgui",
-        {
-            "name": "sdl3",
-            "features": [ "gpu" ]
-        }
+        "sdl3"
     ]
 }

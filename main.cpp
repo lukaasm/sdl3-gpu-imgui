@@ -195,7 +195,7 @@ public:
         ::SDL_ReleaseGPUShader(device, fragmentShader);
 
         auto vertexBufferDesc = ::SDL_GPUBufferCreateInfo{
-            .usageFlags = ::SDL_GPU_BUFFERUSAGE_VERTEX_BIT,
+            .usageFlags = SDL_GPU_BUFFERUSAGE_VERTEX,
             .sizeInBytes = sizeof(ImDrawVert) * 1024 * 1024 * 64
         };
 
@@ -210,7 +210,7 @@ public:
         m_vertexTransferBuffer = ::SDL_CreateGPUTransferBuffer(device, &vertexTransferBufferDesc);
 
         auto indexBufferDesc = ::SDL_GPUBufferCreateInfo{
-            .usageFlags = ::SDL_GPU_BUFFERUSAGE_INDEX_BIT,
+            .usageFlags = SDL_GPU_BUFFERUSAGE_INDEX,
             .sizeInBytes = sizeof(ImDrawIdx) * 1024 * 1024 * 64
         };
 
@@ -244,7 +244,7 @@ public:
         auto textureDesc = ::SDL_GPUTextureCreateInfo{
             .type = SDL_GPU_TEXTURETYPE_2D,
             .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-            .usageFlags = SDL_GPU_TEXTUREUSAGE_SAMPLER_BIT,
+            .usageFlags = SDL_GPU_TEXTUREUSAGE_SAMPLER,
             .width = (uint32_t)width,
             .height = (uint32_t)height,
             .layerCountOrDepth = 1,
@@ -283,7 +283,7 @@ public:
             ::SDL_EndGPUCopyPass(pass);
         }
 
-        ::SDL_SubmitGPU(uploadBuffer);
+        ::SDL_SubmitGPUCommandBuffer(uploadBuffer);
 
         ::SDL_ReleaseGPUTransferBuffer(device, transferBuffer);
 
@@ -462,7 +462,7 @@ int main()
     ::SDL_InitSubSystem(SDL_INIT_VIDEO);
 
     auto properties = ::SDL_CreateProperties();
-    ::SDL_SetStringProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, "D3D11");
+    ::SDL_SetStringProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, "direct3d11");
     ::SDL_SetBooleanProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOL, SDL_TRUE);
 
     auto device = ::SDL_CreateGPUDeviceWithProperties(properties);
@@ -473,12 +473,12 @@ int main()
     int windowHeight = 900;
 
     auto window = ::SDL_CreateWindow("", windowWidth, windowHeight, SDL_WINDOW_HIGH_PIXEL_DENSITY);
-    ::SDL_ClaimGPUWindow(device, window);
+    ::SDL_ClaimWindowForGPUDevice(device, window);
 
     auto depthBufferDesc = ::SDL_GPUTextureCreateInfo{
         .type = SDL_GPU_TEXTURETYPE_2D,
         .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT,
-        .usageFlags = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET_BIT,
+        .usageFlags = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
         .width = (uint32_t)windowWidth,
         .height = (uint32_t)windowHeight,
         .layerCountOrDepth = 1,
@@ -547,6 +547,6 @@ int main()
             ::SDL_EndGPURenderPass(renderPass);
         }
 
-        ::SDL_SubmitGPU(commandBuffer);
+        ::SDL_SubmitGPUCommandBuffer(commandBuffer);
     }
 }

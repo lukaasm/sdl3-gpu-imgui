@@ -85,14 +85,14 @@ public:
 
         auto vertexShaderDesc = SDL_GPUShaderCreateInfo{};
         vertexShaderDesc.code = (const uint8_t*)vertexShaderBlob.data();
-        vertexShaderDesc.codeSize = vertexShaderBlob.size();
-        vertexShaderDesc.entryPointName = "main";
+        vertexShaderDesc.code_size = vertexShaderBlob.size();
+        vertexShaderDesc.entrypoint = "main";
         vertexShaderDesc.format = SDL_GPU_SHADERFORMAT_DXBC;
         vertexShaderDesc.stage = SDL_GPU_SHADERSTAGE_VERTEX;
-        vertexShaderDesc.samplerCount = 0;
-        vertexShaderDesc.uniformBufferCount = 1;
-        vertexShaderDesc.storageBufferCount = 0;
-        vertexShaderDesc.storageTextureCount = 0;
+        vertexShaderDesc.num_samplers = 0;
+        vertexShaderDesc.num_uniform_buffers = 1;
+        vertexShaderDesc.num_storage_buffers = 0;
+        vertexShaderDesc.num_storage_textures = 0;
 
         auto vertexShader = ::SDL_CreateGPUShader(device, &vertexShaderDesc);
 
@@ -100,48 +100,48 @@ public:
 
         auto fragmentShaderDesc = SDL_GPUShaderCreateInfo{};
         fragmentShaderDesc.code = (const uint8_t*)fragmentShaderBlob.data();
-        fragmentShaderDesc.codeSize = fragmentShaderBlob.size();
-        fragmentShaderDesc.entryPointName = "main";
+        fragmentShaderDesc.code_size = fragmentShaderBlob.size();
+        fragmentShaderDesc.entrypoint = "main";
         fragmentShaderDesc.format = SDL_GPU_SHADERFORMAT_DXBC;
         fragmentShaderDesc.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-        fragmentShaderDesc.samplerCount = 1;
-        fragmentShaderDesc.uniformBufferCount = 0;
-        fragmentShaderDesc.storageBufferCount = 0;
-        fragmentShaderDesc.storageTextureCount = 0;
+        fragmentShaderDesc.num_samplers = 1;
+        fragmentShaderDesc.num_uniform_buffers = 0;
+        fragmentShaderDesc.num_storage_buffers = 0;
+        fragmentShaderDesc.num_storage_textures = 0;
 
         auto fragmentShader = ::SDL_CreateGPUShader(device, &fragmentShaderDesc);
 
-        auto attachmentDesc = SDL_GPUColorAttachmentDescription{};
+        auto attachmentDesc = SDL_GPUColorTargetDescription{};
         attachmentDesc.format = ::SDL_GetGPUSwapchainTextureFormat(device, window);
-        attachmentDesc.blendState = {
-            .blendEnable = SDL_TRUE,
-            .srcColorBlendFactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
-            .dstColorBlendFactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            .colorBlendOp = SDL_GPU_BLENDOP_ADD,
-            .srcAlphaBlendFactor = SDL_GPU_BLENDFACTOR_ONE,
-            .dstAlphaBlendFactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
-            .alphaBlendOp = SDL_GPU_BLENDOP_ADD,
-            .colorWriteMask = 0xF,
+        attachmentDesc.blend_state = {
+            .enable_blend = SDL_TRUE,
+            .src_color_blendfactor = SDL_GPU_BLENDFACTOR_SRC_ALPHA,
+            .dst_color_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            .color_blend_op = SDL_GPU_BLENDOP_ADD,
+            .src_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE,
+            .dst_alpha_blendfactor = SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+            .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
+            .color_write_mask = 0xF,
         };
 
         // Create the pipelines
         auto pipelineDesc = SDL_GPUGraphicsPipelineCreateInfo{};
-        pipelineDesc.attachmentInfo = {
-            .colorAttachmentDescriptions = &attachmentDesc,
-            .colorAttachmentCount = 1,
-            .hasDepthStencilAttachment = SDL_TRUE,
-            .depthStencilFormat = SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT
+        pipelineDesc.target_info = {
+            .color_target_descriptions = &attachmentDesc,
+            .num_color_targets = 1,
+            .has_depth_stencil_target = SDL_TRUE,
+            .depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT
         };
 
-        pipelineDesc.depthStencilState.depthTestEnable = SDL_TRUE;
-        pipelineDesc.depthStencilState.depthWriteEnable = SDL_FALSE;
-        pipelineDesc.depthStencilState.compareOp = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
+        pipelineDesc.depth_stencil_state.enable_depth_test = SDL_TRUE;
+        pipelineDesc.depth_stencil_state.enable_depth_write = SDL_FALSE;
+        pipelineDesc.depth_stencil_state.compare_op = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
 
         auto vertexBindingsDesc = ::SDL_GPUVertexBinding{
             .binding = 0,
-            .stride = sizeof(ImDrawVert),
-            .inputRate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
-            .instanceStepRate = 0,
+            .pitch = sizeof(ImDrawVert),
+            .input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX,
+            .instance_step_rate = 0,
         };
 
         SDL_GPUVertexAttribute vertexAttributesDesc[] = {
@@ -166,27 +166,27 @@ public:
 
         };
 
-        pipelineDesc.vertexInputState = {
-            .vertexBindings = &vertexBindingsDesc,
-            .vertexBindingCount = 1,
-            .vertexAttributes = vertexAttributesDesc,
-            .vertexAttributeCount = 3,
+        pipelineDesc.vertex_input_state = {
+            .vertex_bindings = &vertexBindingsDesc,
+            .num_vertex_bindings = 1,
+            .vertex_attributes = vertexAttributesDesc,
+            .num_vertex_attributes = 3,
         };
 
-        pipelineDesc.rasterizerState = ::SDL_GPURasterizerState{
-            .fillMode = SDL_GPU_FILLMODE_FILL,
-            .cullMode = SDL_GPU_CULLMODE_NONE,
-            .frontFace = {},
-            .depthBiasEnable = SDL_FALSE,
-            .depthBiasConstantFactor = {},
-            .depthBiasClamp = {},
-            .depthBiasSlopeFactor = {},
+        pipelineDesc.rasterizer_state = ::SDL_GPURasterizerState{
+            .fill_mode = SDL_GPU_FILLMODE_FILL,
+            .cull_mode = SDL_GPU_CULLMODE_NONE,
+            .front_face = {},
+            .enable_depth_bias = SDL_FALSE,
+            .depth_bias_constant_factor = {},
+            .depth_bias_clamp = {},
+            .depth_bias_slope_factor = {},
         };
 
-        pipelineDesc.primitiveType = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
-        pipelineDesc.multisampleState.sampleMask = 0xFFFF;
-        pipelineDesc.vertexShader = vertexShader;
-        pipelineDesc.fragmentShader = fragmentShader;
+        pipelineDesc.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
+        pipelineDesc.multisample_state.sample_mask = 0xFFFF;
+        pipelineDesc.vertex_shader = vertexShader;
+        pipelineDesc.fragment_shader = fragmentShader;
 
         m_pipeline = ::SDL_CreateGPUGraphicsPipeline(device, &pipelineDesc);
 
@@ -195,8 +195,8 @@ public:
         ::SDL_ReleaseGPUShader(device, fragmentShader);
 
         auto vertexBufferDesc = ::SDL_GPUBufferCreateInfo{
-            .usageFlags = SDL_GPU_BUFFERUSAGE_VERTEX,
-            .sizeInBytes = sizeof(ImDrawVert) * 1024 * 1024 * 64
+            .usage = SDL_GPU_BUFFERUSAGE_VERTEX,
+            .size = sizeof(ImDrawVert) * 1024 * 1024 * 64
         };
 
         m_vertexBuffer = ::SDL_CreateGPUBuffer(device, &vertexBufferDesc);
@@ -204,14 +204,14 @@ public:
 
         auto vertexTransferBufferDesc = ::SDL_GPUTransferBufferCreateInfo{
             .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-            .sizeInBytes = vertexBufferDesc.sizeInBytes
+            .size = vertexBufferDesc.size
         };
 
         m_vertexTransferBuffer = ::SDL_CreateGPUTransferBuffer(device, &vertexTransferBufferDesc);
 
         auto indexBufferDesc = ::SDL_GPUBufferCreateInfo{
-            .usageFlags = SDL_GPU_BUFFERUSAGE_INDEX,
-            .sizeInBytes = sizeof(ImDrawIdx) * 1024 * 1024 * 64
+            .usage = SDL_GPU_BUFFERUSAGE_INDEX,
+            .size = sizeof(ImDrawIdx) * 1024 * 1024 * 64
         };
 
         m_indexBuffer = ::SDL_CreateGPUBuffer(device, &indexBufferDesc);
@@ -219,18 +219,18 @@ public:
 
         auto indexTransferBufferDesc = ::SDL_GPUTransferBufferCreateInfo{
             .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-            .sizeInBytes = indexBufferDesc.sizeInBytes
+            .size = indexBufferDesc.size
         };
 
         m_indexTransferBuffer = ::SDL_CreateGPUTransferBuffer(device, &indexTransferBufferDesc);
 
         auto samplerDesc = ::SDL_GPUSamplerCreateInfo{
-            .minFilter = SDL_GPU_FILTER_NEAREST,
-            .magFilter = SDL_GPU_FILTER_NEAREST,
-            .mipmapMode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
-            .addressModeU = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
-            .addressModeV = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
-            .addressModeW = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+            .min_filter = SDL_GPU_FILTER_NEAREST,
+            .mag_filter = SDL_GPU_FILTER_NEAREST,
+            .mipmap_mode = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+            .address_mode_u = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+            .address_mode_v = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+            .address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
         };
 
         m_textureSampler = SDL_CreateGPUSampler(device, &samplerDesc);
@@ -244,12 +244,12 @@ public:
         auto textureDesc = ::SDL_GPUTextureCreateInfo{
             .type = SDL_GPU_TEXTURETYPE_2D,
             .format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-            .usageFlags = SDL_GPU_TEXTUREUSAGE_SAMPLER,
+            .usage = SDL_GPU_TEXTUREUSAGE_SAMPLER,
             .width = (uint32_t)width,
             .height = (uint32_t)height,
-            .layerCountOrDepth = 1,
-            .levelCount = 1,
-            .sampleCount = {},
+            .layer_count_or_depth = 1,
+            .num_levels = 1,
+            .sample_count = SDL_GPU_SAMPLECOUNT_1,
         };
 
         m_fontTexture = ::SDL_CreateGPUTexture(device, &textureDesc);
@@ -263,7 +263,7 @@ public:
 
         auto transferBufferDesc = ::SDL_GPUTransferBufferCreateInfo{
             .usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD,
-            .sizeInBytes = pixelDataSizeInBytes
+            .size = pixelDataSizeInBytes
         };
 
         auto* transferBuffer = ::SDL_CreateGPUTransferBuffer(device, &transferBufferDesc);
@@ -324,7 +324,7 @@ public:
         auto* pass = ::SDL_BeginGPUCopyPass(commandBuffer);
         {
             auto transferSourceDesc = ::SDL_GPUTransferBufferLocation{
-                .transferBuffer = m_vertexTransferBuffer
+                .transfer_buffer = m_vertexTransferBuffer
             };
 
             auto transferDestDesc = ::SDL_GPUBufferRegion{
@@ -337,7 +337,7 @@ public:
         }
         {
             auto transferSourceDesc = ::SDL_GPUTransferBufferLocation{
-                .transferBuffer = m_indexTransferBuffer
+                .transfer_buffer = m_indexTransferBuffer
             };
 
             auto transferDestDesc = ::SDL_GPUBufferRegion{
@@ -361,8 +361,8 @@ public:
            .y = 0.0f,
            .w = drawData->DisplaySize.x,
            .h = drawData->DisplaySize.y,
-           .minDepth = 0.0f,
-           .maxDepth = 1.0f,
+           .min_depth = 0.0f,
+           .max_depth = 1.0f,
         };
 
         ::SDL_SetGPUViewport(renderPass, &viewportDesc);
@@ -478,12 +478,12 @@ int main()
     auto depthBufferDesc = ::SDL_GPUTextureCreateInfo{
         .type = SDL_GPU_TEXTURETYPE_2D,
         .format = SDL_GPU_TEXTUREFORMAT_D24_UNORM_S8_UINT,
-        .usageFlags = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
+        .usage = SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET,
         .width = (uint32_t)windowWidth,
         .height = (uint32_t)windowHeight,
-        .layerCountOrDepth = 1,
-        .levelCount = 1,
-        .sampleCount = SDL_GPU_SAMPLECOUNT_1,
+        .layer_count_or_depth = 1,
+        .num_levels = 1,
+        .sample_count = SDL_GPU_SAMPLECOUNT_1,
     };
 
     //! #TODO: support for resizing depth buffers!
@@ -523,21 +523,21 @@ int main()
         uint32_t w = {}, h = {};
         if (auto windowTexture = SDL_AcquireGPUSwapchainTexture(commandBuffer, window, &w, &h); windowTexture != nullptr)
         {
-            auto renderTargetDesc = SDL_GPUColorAttachmentInfo{};
+            auto renderTargetDesc = SDL_GPUColorTargetInfo{};
             renderTargetDesc.texture = windowTexture;
-            renderTargetDesc.clearColor = SDL_FColor{ 0.3f, 0.4f, 0.5f, 1.0f };
-            renderTargetDesc.loadOp = SDL_GPU_LOADOP_CLEAR;
-            renderTargetDesc.storeOp = SDL_GPU_STOREOP_STORE;
+            renderTargetDesc.clear_color = SDL_FColor{ 0.3f, 0.4f, 0.5f, 1.0f };
+            renderTargetDesc.load_op = SDL_GPU_LOADOP_CLEAR;
+            renderTargetDesc.store_op = SDL_GPU_STOREOP_STORE;
 
-            auto depthStencilDesc = SDL_GPUDepthStencilAttachmentInfo{};
+            auto depthStencilDesc = SDL_GPUDepthStencilTargetInfo{};
             depthStencilDesc.texture = depthBuffer;
             depthStencilDesc.cycle = SDL_TRUE;
-            depthStencilDesc.depthStencilClearValue.depth = 0;
-            depthStencilDesc.depthStencilClearValue.stencil = 0;
-            depthStencilDesc.loadOp = SDL_GPU_LOADOP_CLEAR;
-            depthStencilDesc.storeOp = SDL_GPU_STOREOP_DONT_CARE;
-            depthStencilDesc.stencilLoadOp = SDL_GPU_LOADOP_CLEAR;
-            depthStencilDesc.stencilStoreOp = SDL_GPU_STOREOP_DONT_CARE;
+            depthStencilDesc.clear_value.depth = 0;
+            depthStencilDesc.clear_value.stencil = 0;
+            depthStencilDesc.load_op = SDL_GPU_LOADOP_CLEAR;
+            depthStencilDesc.store_op = SDL_GPU_STOREOP_DONT_CARE;
+            depthStencilDesc.stencil_load_op = SDL_GPU_LOADOP_CLEAR;
+            depthStencilDesc.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
 
             auto drawData = ImGui::GetDrawData();
             pass.UpdateBuffers(device, commandBuffer, drawData);

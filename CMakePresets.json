@@ -24,7 +24,7 @@
                     "type": "FILEPATH",
                     "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
                 },
-                "CMAKE_CONFIGURATION_TYPES": "Debug;RelWithDebInfo",
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
                 "CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG": {
                     "type": "FILEPATH",
                     "value": "${sourceDir}/bin/Debug"

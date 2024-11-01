@@ -462,7 +462,7 @@ int main()
 
     auto properties = ::SDL_CreateProperties();
     ::SDL_SetStringProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_NAME_STRING, "direct3d11");
-    ::SDL_SetBooleanProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOL, true);
+    ::SDL_SetBooleanProperty(properties, SDL_PROP_GPU_DEVICE_CREATE_SHADERS_DXBC_BOOLEAN, true);
 
     auto device = ::SDL_CreateGPUDeviceWithProperties(properties);
 
@@ -520,7 +520,9 @@ int main()
         auto commandBuffer = ::SDL_AcquireGPUCommandBuffer(device);
 
         uint32_t w = {}, h = {};
-        if (auto windowTexture = SDL_AcquireGPUSwapchainTexture(commandBuffer, window, &w, &h); windowTexture != nullptr)
+
+        ::SDL_GPUTexture* windowTexture = nullptr;
+        if ( ::SDL_AcquireGPUSwapchainTexture(commandBuffer, window, &windowTexture, &w, &h) && windowTexture != nullptr)
         {
             auto renderTargetDesc = SDL_GPUColorTargetInfo{};
             renderTargetDesc.texture = windowTexture;
